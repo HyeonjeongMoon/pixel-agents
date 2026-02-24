@@ -348,12 +348,29 @@ export async function loadCharacterSprites(
     for (let ci = 0; ci < CHAR_COUNT; ci++) {
       const filePath = path.join(charDir, `char_${ci}.png`)
       if (!fs.existsSync(filePath)) {
-        console.log(`[AssetLoader] No character sprite found at: ${filePath}`)
-        return null
+        console.warn(`[AssetLoader] Character sprite missing: char_${ci}.png — using transparent placeholder`)
+        // Push a fully-transparent placeholder so the array stays CHAR_COUNT elements.
+        // The webview will fall back to its hardcoded template for this palette index.
+        const emptyFrames: string[][][] = Array.from({ length: CHAR_FRAMES_PER_ROW }, () =>
+          Array.from({ length: CHAR_FRAME_H }, () => new Array<string>(CHAR_FRAME_W).fill('')),
+        )
+        characters.push({ down: emptyFrames, up: emptyFrames, right: emptyFrames })
+        continue
       }
 
-      const pngBuffer = fs.readFileSync(filePath)
-      const png = PNG.sync.read(pngBuffer)
+      let pngBuffer: Buffer
+      let png: ReturnType<typeof PNG.sync.read>
+      try {
+        pngBuffer = fs.readFileSync(filePath)
+        png = PNG.sync.read(pngBuffer)
+      } catch (err) {
+        console.warn(`[AssetLoader] Failed to read char_${ci}.png: ${err instanceof Error ? err.message : err} — using transparent placeholder`)
+        const emptyFrames: string[][][] = Array.from({ length: CHAR_FRAMES_PER_ROW }, () =>
+          Array.from({ length: CHAR_FRAME_H }, () => new Array<string>(CHAR_FRAME_W).fill('')),
+        )
+        characters.push({ down: emptyFrames, up: emptyFrames, right: emptyFrames })
+        continue
+      }
 
       const directions = CHARACTER_DIRECTIONS
       const charData: CharacterDirectionSprites = { down: [], up: [], right: [] }

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import type { EditorState } from '../office/editor/editorState.js'
 import { EditTool } from '../office/types.js'
 
@@ -13,9 +13,17 @@ export function useEditorKeyboard(
   onEditorTick: () => void,
   onCloseEditMode: () => void,
 ): void {
+  // Keep callbacks in a ref so the keydown listener is never re-attached just
+  // because a parent re-rendered and produced new function references.
+  const cbRef = useRef({ onDeleteSelected, onRotateSelected, onToggleState, onUndo, onRedo, onEditorTick, onCloseEditMode })
+  useEffect(() => {
+    cbRef.current = { onDeleteSelected, onRotateSelected, onToggleState, onUndo, onRedo, onEditorTick, onCloseEditMode }
+  })
+
   useEffect(() => {
     if (!isEditMode) return
     const handler = (e: KeyboardEvent) => {
+      const cb = cbRef.current
       if (e.key === 'Escape') {
         // Multi-stage Esc: deselect item → close tool → deselect placed → close editor
         if (editorState.activeTool === EditTool.FURNITURE_PICK) {
@@ -30,31 +38,32 @@ export function useEditorKeyboard(
         } else if (editorState.selectedFurnitureUid) {
           editorState.clearSelection()
         } else {
-          onCloseEditMode()
+          cb.onCloseEditMode()
           return
         }
         editorState.clearDrag()
-        onEditorTick()
+        cb.onEditorTick()
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
         if (editorState.selectedFurnitureUid) {
-          onDeleteSelected()
+          cb.onDeleteSelected()
         }
       } else if (e.key === 'r' || e.key === 'R') {
-        onRotateSelected()
+        cb.onRotateSelected()
       } else if (e.key === 't' || e.key === 'T') {
-        onToggleState()
+        cb.onToggleState()
       } else if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
         e.preventDefault()
-        onUndo()
+        cb.onUndo()
       } else if (
         (e.key === 'y' && (e.ctrlKey || e.metaKey)) ||
         (e.key === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey)
       ) {
         e.preventDefault()
-        onRedo()
+        cb.onRedo()
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [isEditMode, editorState, onDeleteSelected, onRotateSelected, onToggleState, onUndo, onRedo, onEditorTick, onCloseEditMode])
+    // editorState is a stable class instance — re-attach only when edit mode toggles
+  }, [isEditMode, editorState])
 }

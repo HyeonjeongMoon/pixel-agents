@@ -52,13 +52,13 @@ export function ToolOverlay({
 }: ToolOverlayProps) {
   const [, setTick] = useState(0)
   useEffect(() => {
-    let rafId = 0
-    const tick = () => {
+    // Poll at 10fps to follow character position in imperative officeState.
+    // 60fps rAF is unnecessary — the canvas already renders at 60fps; the
+    // overlay label just needs to track a slowly-walking character.
+    const interval = setInterval(() => {
       setTick((n) => n + 1)
-      rafId = requestAnimationFrame(tick)
-    }
-    rafId = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(rafId)
+    }, 100)
+    return () => clearInterval(interval)
   }, [])
 
   const el = containerRef.current

@@ -123,6 +123,8 @@ export function processTranscriptLine(
 							agent.activeToolNames.delete(completedToolId);
 							const toolId = completedToolId;
 							setTimeout(() => {
+								// Re-check: agent may have been removed during the delay
+								if (!agents.has(agentId)) return;
 								webview?.postMessage({
 									type: 'agentToolDone',
 									id: agentId,
@@ -271,6 +273,8 @@ function processProgressRecord(
 
 				const toolId = block.tool_use_id;
 				setTimeout(() => {
+					// Re-check: agent may have been removed during the delay
+					if (!agents.has(agentId)) return;
 					webview?.postMessage({
 						type: 'subagentToolDone',
 						id: agentId,

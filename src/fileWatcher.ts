@@ -16,10 +16,15 @@ export function startFileWatching(
 	permissionTimers: Map<number, ReturnType<typeof setTimeout>>,
 	webview: vscode.Webview | undefined,
 ): void {
-	// Primary: fs.watch
+	// Primary: fs.watch (backup polling below handles unreliable platforms)
 	try {
 		const watcher = fs.watch(filePath, () => {
 			readNewLines(agentId, agents, waitingTimers, permissionTimers, webview);
+		});
+		watcher.on('error', (e) => {
+			// Remove broken watcher — polling backup continues uninterrupted
+			console.log(`[Pixel Agents] fs.watch error for agent ${agentId}: ${e}`);
+			fileWatchers.delete(agentId);
 		});
 		fileWatchers.set(agentId, watcher);
 	} catch (e) {
