@@ -1,0 +1,99 @@
+{
+  "run_id": "demo-run-001",
+  "snapshot_ts": "2026-02-24T13:00:00.000Z",
+  "layout": {
+    "version": 1,
+    "cols": 40,
+    "rows": 30,
+    "title": "Pixel Agent Office",
+    "furniture": [
+      { "id": "counter-top-1", "type": "counter", "col": 1, "row": 1, "w": 38, "h": 1 },
+      { "id": "counter-right-1", "type": "counter", "col": 37, "row": 2, "w": 1, "h": 27 },
+      { "id": "counter-bottom-1", "type": "counter", "col": 1, "row": 28, "w": 38, "h": 1 },
+      { "id": "counter-left-1", "type": "counter", "col": 1, "row": 2, "w": 1, "h": 27 },
+
+      { "id": "meeting-table", "type": "table", "col": 14, "row": 3, "w": 12, "h": 4 },
+      { "id": "meeting-chair-1", "type": "chair", "col": 15, "row": 7 },
+      { "id": "meeting-chair-2", "type": "chair", "col": 18, "row": 7 },
+      { "id": "meeting-chair-3", "type": "chair", "col": 21, "row": 7 },
+      { "id": "meeting-chair-4", "type": "chair", "col": 24, "row": 7 },
+      { "id": "meeting-board", "type": "whiteboard", "col": 16, "row": 2, "w": 8, "h": 1 },
+
+      { "id": "dev-desk-1", "type": "desk", "col": 6, "row": 11, "w": 5, "h": 2 },
+      { "id": "dev-desk-2", "type": "desk", "col": 14, "row": 11, "w": 5, "h": 2 },
+      { "id": "dev-desk-3", "type": "desk", "col": 22, "row": 11, "w": 5, "h": 2 },
+      { "id": "dev-desk-4", "type": "desk", "col": 30, "row": 11, "w": 5, "h": 2 },
+
+      { "id": "dev-desk-5", "type": "desk", "col": 6, "row": 17, "w": 5, "h": 2 },
+      { "id": "dev-desk-6", "type": "desk", "col": 14, "row": 17, "w": 5, "h": 2 },
+      { "id": "dev-desk-7", "type": "desk", "col": 22, "row": 17, "w": 5, "h": 2 },
+      { "id": "dev-desk-8", "type": "desk", "col": 30, "row": 17, "w": 5, "h": 2 },
+
+      { "id": "chair-l-top", "type": "chair", "col": 8, "row": 10 },
+      { "id": "chair-r-top", "type": "chair", "col": 24, "row": 10 },
+      { "id": "chair-l-bottom", "type": "chair", "col": 8, "row": 20 },
+      { "id": "chair-r-bottom", "type": "chair", "col": 24, "row": 20 },
+
+      { "id": "storage-books-1", "type": "bookshelf", "col": 3, "row": 3, "w": 4, "h": 2 },
+      { "id": "storage-books-2", "type": "bookshelf", "col": 8, "row": 3, "w": 4, "h": 2 },
+      { "id": "storage-cabinet-1", "type": "cabinet", "col": 3, "row": 22, "w": 2, "h": 3 },
+      { "id": "storage-cabinet-2", "type": "cabinet", "col": 6, "row": 22, "w": 2, "h": 3 },
+      { "id": "storage-cabinet-3", "type": "cabinet", "col": 9, "row": 22, "w": 2, "h": 3 },
+
+      { "id": "pantry-counter", "type": "counter", "col": 31, "row": 3, "w": 6, "h": 1 },
+      { "id": "pantry-cooler", "type": "cooler", "col": 31, "row": 5, "w": 2, "h": 2 },
+      { "id": "pantry-cabinet-1", "type": "cabinet", "col": 34, "row": 5, "w": 2, "h": 2 },
+      { "id": "pantry-cabinet-2", "type": "cabinet", "col": 34, "row": 8, "w": 2, "h": 2 },
+
+      { "id": "plant-1", "type": "plant", "col": 4, "row": 26 },
+      { "id": "plant-2", "type": "plant", "col": 35, "row": 26 },
+      { "id": "plant-3", "type": "plant", "col": 28, "row": 5 }
+    ]
+  },
+  "agents": [
+    {
+      "agent_id": "a-fe",
+      "name": "프론트엔드 에이전트",
+      "kind": "primary",
+      "status": "active",
+      "tool_status": "대시보드 컴포넌트 구조 점검",
+      "seat_id": "chair-l-top",
+      "position": { "col": 8, "row": 10 },
+      "bubble": { "type": null, "visible": false },
+      "updated_at": "2026-02-24T13:00:00.000Z"
+    },
+    {
+      "agent_id": "a-be",
+      "name": "백엔드 에이전트",
+      "kind": "primary",
+      "status": "active",
+      "tool_status": "이벤트 스트림 API 응답 구조 점검",
+      "seat_id": "chair-r-top",
+      "position": { "col": 24, "row": 10 },
+      "bubble": { "type": null, "visible": false },
+      "updated_at": "2026-02-24T13:00:00.000Z"
+    },
+    {
+      "agent_id": "a-pm",
+      "name": "기획 에이전트",
+      "kind": "primary",
+      "status": "active",
+      "tool_status": "요구사항 우선순위 정리",
+      "seat_id": "chair-l-bottom",
+      "position": { "col": 8, "row": 20 },
+      "bubble": { "type": null, "visible": false },
+      "updated_at": "2026-02-24T13:00:00.000Z"
+    },
+    {
+      "agent_id": "a-design",
+      "name": "디자인 에이전트",
+      "kind": "primary",
+      "status": "active",
+      "tool_status": "오피스 UI 테마 초안 작성",
+      "seat_id": "chair-r-bottom",
+      "position": { "col": 24, "row": 20 },
+      "bubble": { "type": null, "visible": false },
+      "updated_at": "2026-02-24T13:00:00.000Z"
+    }
+  ]
+}

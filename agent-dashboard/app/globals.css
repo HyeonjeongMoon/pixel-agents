@@ -1,0 +1,329 @@
+:root {
+  --bg: #f6f2e8;
+  --ink: #1f2a30;
+  --card: #fffdf8;
+  --line: #cbbda8;
+  --accent: #2b6f6b;
+  --done: #9cb8a7;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "IBM Plex Sans", "Noto Sans KR", sans-serif;
+  background: radial-gradient(circle at 20% 10%, #fffef9, var(--bg));
+  color: var(--ink);
+}
+
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
+  display: grid;
+  gap: 14px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.controls {
+  display: flex;
+  gap: 8px;
+}
+
+button {
+  border: 2px solid var(--ink);
+  background: var(--card);
+  padding: 8px 10px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.card {
+  border: 2px solid var(--line);
+  background: var(--card);
+  padding: 12px;
+}
+
+.agents {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.agent {
+  border: 2px solid var(--line);
+  padding: 10px;
+}
+
+.agent h3 {
+  margin-top: 0;
+  margin-bottom: 6px;
+}
+
+.agent p {
+  margin: 4px 0;
+  font-size: 14px;
+}
+
+.events {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.event {
+  border: 1px solid var(--line);
+  padding: 8px;
+  display: grid;
+  grid-template-columns: 80px 1.8fr 1fr 2fr;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.event.done {
+  background: var(--done);
+}
+
+.officeGrid {
+  --tile: 22px;
+  position: relative;
+  width: min(100%, calc(var(--cols) * var(--tile)));
+  aspect-ratio: calc(var(--cols) / var(--rows));
+  border: 8px solid #f6f6f4;
+  outline: 2px solid #1f2a30;
+  background-color: #b8ccd4;
+  background-image:
+    linear-gradient(to right, rgba(62, 92, 103, 0.14) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(62, 92, 103, 0.14) 1px, transparent 1px),
+    radial-gradient(circle at 50% 50%, rgba(150, 179, 190, 0.2) 0 1.2px, transparent 1.2px);
+  background-size: var(--tile) var(--tile);
+  overflow: visible;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.furniture {
+  position: absolute;
+  left: calc(var(--col) * var(--tile));
+  top: calc(var(--row) * var(--tile));
+  width: calc(var(--w) * var(--tile));
+  height: calc(var(--h) * var(--tile));
+  border: 2px solid #1f2a30;
+  image-rendering: pixelated;
+  z-index: 1;
+}
+
+.furniture-desk {
+  background:
+    linear-gradient(to bottom, #c39a66 0 33%, #997247 33% 100%);
+  box-shadow: inset 0 -4px 0 #6e4f31;
+}
+
+.furniture-chair {
+  background:
+    linear-gradient(to bottom, #be8f55 0 45%, #8a6538 45% 100%);
+  box-shadow: inset 0 -3px 0 #5f4324;
+}
+
+.furniture-cabinet {
+  background:
+    repeating-linear-gradient(to bottom, #d2ab69 0 9px, #b88f52 9px 18px);
+}
+
+.furniture-plant {
+  background:
+    linear-gradient(to bottom, #2f8142 0 60%, #5a3f2b 60% 100%);
+}
+
+.furniture-whiteboard {
+  background: #f5f8ff;
+  box-shadow: inset 0 0 0 2px #c8d4eb;
+}
+
+.furniture-table {
+  background:
+    linear-gradient(to bottom, #cba26e 0 45%, #90663d 45% 100%);
+}
+
+.furniture-bookshelf {
+  background:
+    repeating-linear-gradient(to bottom, #8f6139 0 7px, #734d2d 7px 14px);
+}
+
+.furniture-cooler {
+  background:
+    linear-gradient(to bottom, #d5dce3 0 70%, #9aa7b2 70% 100%);
+}
+
+.furniture-counter {
+  background:
+    linear-gradient(to bottom, #f7f6f3 0 75%, #d6d4cf 75% 100%);
+  border-color: #27353b;
+}
+
+.agentSpriteWrap {
+  position: absolute;
+  left: calc((var(--col) + 0.08) * var(--tile));
+  top: calc((var(--row) - 0.18) * var(--tile));
+  width: calc(var(--tile) * 0.95);
+  transition: left 180ms linear, top 180ms linear;
+  z-index: 3;
+}
+
+.agentSprite {
+  position: relative;
+  display: block;
+  width: 20px;
+  height: 28px;
+  image-rendering: pixelated;
+  animation: bob 0.85s steps(2, end) infinite;
+}
+
+.agentSprite .head,
+.agentSprite .body,
+.agentSprite .legs {
+  position: absolute;
+  left: 0;
+  border: 2px solid #1f2a30;
+}
+
+.agentSprite .head {
+  top: 0;
+  left: 4px;
+  width: 12px;
+  height: 8px;
+  background: #f0c19a;
+}
+
+.agentSprite .body {
+  top: 8px;
+  left: 3px;
+  width: 14px;
+  height: 12px;
+}
+
+.agentSprite .legs {
+  top: 20px;
+  left: 5px;
+  width: 10px;
+  height: 8px;
+  background: #2f3339;
+}
+
+.agentSprite.active .body {
+  background: #2e7d5d;
+}
+
+.agentSprite.waiting .body {
+  background: #bf8a2e;
+}
+
+.agentSprite.idle .body {
+  background: #62727f;
+}
+
+.agentSprite.error .body {
+  background: #b7413e;
+}
+
+.bubble {
+  position: absolute;
+  top: -16px;
+  left: -2px;
+  padding: 1px 4px;
+  font-size: 10px;
+  border: 1px solid #1f2a30;
+  background: #fff;
+  text-transform: uppercase;
+  z-index: 2;
+}
+
+.bubble.permission {
+  background: #ffd8d5;
+}
+
+.bubble.waiting {
+  background: #fff2ce;
+}
+
+.agentNameTag {
+  position: absolute;
+  top: 27px;
+  left: -10px;
+  font-size: 10px;
+  padding: 0 3px;
+  border: 1px solid rgba(31, 42, 48, 0.5);
+  background: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+}
+
+.workTooltip {
+  position: absolute;
+  left: 22px;
+  top: -12px;
+  width: 320px;
+  max-width: min(68vw, 320px);
+  border: 2px solid #1f2a30;
+  background: #fffdf6;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.2);
+  padding: 8px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition: opacity 120ms ease, transform 120ms ease;
+  z-index: 8;
+}
+
+.agentSpriteWrap:hover .workTooltip {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.workTooltipTitle {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #2f4d5a;
+}
+
+.workTooltip ol {
+  margin: 0;
+  padding-left: 16px;
+  display: grid;
+  gap: 3px;
+}
+
+.workTooltip li {
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+@keyframes bob {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-1px); }
+}
+
+@media (max-width: 760px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .event {
+    grid-template-columns: 1fr;
+  }
+}

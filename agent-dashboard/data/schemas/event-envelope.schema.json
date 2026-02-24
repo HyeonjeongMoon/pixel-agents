@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pixel-agents.local/schemas/event-envelope.schema.json",
+  "title": "Agent Event Envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["seq", "ts", "run_id", "type", "agent_id", "payload"],
+  "properties": {
+    "seq": { "type": "integer", "minimum": 1 },
+    "ts": { "type": "string", "format": "date-time" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "type": {
+      "type": "string",
+      "enum": [
+        "agent.created",
+        "agent.status.changed",
+        "agent.tool.started",
+        "agent.tool.finished",
+        "agent.permission.waiting",
+        "agent.permission.cleared",
+        "agent.position.changed",
+        "agent.seat.assigned",
+        "agent.subagent.created",
+        "agent.subagent.removed",
+        "agent.tools.cleared",
+        "agent.removed",
+        "layout.updated"
+      ]
+    },
+    "agent_id": { "type": "string", "minLength": 1 },
+    "payload": { "type": "object" }
+  }
+}

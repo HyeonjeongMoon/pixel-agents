@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pixel-agents.local/schemas/state-snapshot.schema.json",
+  "title": "Agent Dashboard State Snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["run_id", "snapshot_ts", "layout", "agents"],
+  "properties": {
+    "run_id": { "type": "string", "minLength": 1 },
+    "snapshot_ts": { "type": "string", "format": "date-time" },
+    "layout": {
+      "type": "object",
+      "required": ["version", "cols", "rows"],
+      "properties": {
+        "version": { "type": "integer", "minimum": 1 },
+        "cols": { "type": "integer", "minimum": 1 },
+        "rows": { "type": "integer", "minimum": 1 },
+        "title": { "type": "string" },
+        "furniture": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "type", "col", "row"],
+            "properties": {
+              "id": { "type": "string" },
+              "type": {
+                "type": "string",
+                "enum": ["desk", "chair", "cabinet", "plant", "whiteboard", "table", "bookshelf", "cooler", "counter"]
+              },
+              "col": { "type": "integer", "minimum": 0 },
+              "row": { "type": "integer", "minimum": 0 },
+              "w": { "type": "integer", "minimum": 1 },
+              "h": { "type": "integer", "minimum": 1 }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "agents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["agent_id", "name", "kind", "status", "position", "updated_at"],
+        "properties": {
+          "agent_id": { "type": "string" },
+          "name": { "type": "string" },
+          "kind": { "type": "string", "enum": ["primary", "subagent"] },
+          "parent_agent_id": { "type": "string" },
+          "status": { "type": "string", "enum": ["active", "waiting", "idle", "error"] },
+          "tool_status": { "type": ["string", "null"] },
+          "seat_id": { "type": ["string", "null"] },
+          "position": {
+            "type": "object",
+            "required": ["col", "row"],
+            "properties": {
+              "col": { "type": "integer" },
+              "row": { "type": "integer" }
+            },
+            "additionalProperties": false
+          },
+          "bubble": {
+            "type": "object",
+            "required": ["type", "visible"],
+            "properties": {
+              "type": { "type": ["string", "null"], "enum": ["waiting", "permission", null] },
+              "visible": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          },
+          "updated_at": { "type": "string", "format": "date-time" }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}
