@@ -1,10 +1,10 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { applyEvent } from "@/lib/reducer";
 import type { AgentEvent, StateSnapshot } from "@/lib/types";
 import type { DashboardDataSource } from "@/lib/dataSource";
+import PixelOfficeCanvas from "@/components/PixelOfficeCanvas";
 
 interface Props {
   initialSnapshot: StateSnapshot;
@@ -12,39 +12,13 @@ interface Props {
   dataSource: DashboardDataSource;
 }
 
-const DESK_LABELS: Record<string, string> = {
-  "dev-desk-1": "Frontend Pod",
-  "dev-desk-2": "Backend Pod",
-  "dev-desk-3": "Design Pod",
-  "dev-desk-4": "Planning Pod",
-  "dev-desk-5": "QA Pod",
-  "dev-desk-6": "Infra Pod",
-  "dev-desk-7": "Data Pod",
-  "dev-desk-8": "Research Pod",
-};
-
-function bubbleLabel(type: "waiting" | "permission" | null, visible: boolean): string {
-  if (!visible || !type) return "-";
-  return type;
-}
-
-function statusClass(status: string): string {
-  if (status === "active") return "agentSprite active";
-  if (status === "waiting") return "agentSprite idle";
-  if (status === "error") return "agentSprite error";
-  return "agentSprite idle";
-}
-
 function displayStatus(status: string): string {
   return status === "waiting" ? "idle" : status;
 }
 
-function speechText(status: string, toolStatus: string | null): string | null {
-  if (displayStatus(status) !== "active") return null;
-  if (!toolStatus) return null;
-  const cleaned = toolStatus.replace(/\s*\(완료\)\s*$/u, "").trim();
-  if (!cleaned) return null;
-  return cleaned.length > 36 ? `${cleaned.slice(0, 36)}…` : cleaned;
+function bubbleLabel(type: "waiting" | "permission" | null, visible: boolean): string {
+  if (!visible || !type) return "-";
+  return type;
 }
 
 function eventLogLine(event: AgentEvent): string | null {
@@ -275,89 +249,8 @@ export default function Dashboard({ initialSnapshot, events, dataSource }: Props
       </section>
 
       <section className="card">
-        <h2>Pixel Office Preview</h2>
-        <div
-          className="officeGrid"
-          style={
-            {
-              "--cols": state.layout.cols,
-              "--rows": state.layout.rows,
-            } as CSSProperties
-          }
-        >
-          {(state.layout.furniture ?? []).map((item) => (
-            <Fragment key={item.id}>
-              <div
-                className={`furniture furniture-${item.type}`}
-                style={
-                  {
-                    "--col": item.col,
-                    "--row": item.row,
-                    "--w": item.w ?? 1,
-                    "--h": item.h ?? 1,
-                  } as CSSProperties
-                }
-                title={`${item.type} (${item.col}, ${item.row})`}
-              />
-              {item.id in DESK_LABELS ? (
-                <div
-                  className="deskLabel"
-                  style={
-                    {
-                      "--col": item.col,
-                      "--row": item.row,
-                      "--w": item.w ?? 1,
-                    } as CSSProperties
-                  }
-                >
-                  {DESK_LABELS[item.id]}
-                </div>
-              ) : null}
-            </Fragment>
-          ))}
-
-          {state.agents.map((agent) => (
-            (() => {
-              const speech = speechText(agent.status, agent.tool_status);
-              return (
-                <div
-                  key={agent.agent_id}
-                  className="agentSpriteWrap"
-                  style={
-                    {
-                      "--col": agent.position.col,
-                      "--row": agent.position.row,
-                    } as CSSProperties
-                  }
-                  title={`${agent.name} (${agent.status})`}
-                >
-                  {speech ? <div className="workSpeech">{speech}</div> : null}
-                  {agent.bubble.visible && agent.bubble.type ? (
-                    <span className={`bubble ${agent.bubble.type}`}>{agent.bubble.type}</span>
-                  ) : null}
-                  <span className={statusClass(agent.status)}>
-                    <span className="head" />
-                    <span className="body" />
-                    <span className="legs" />
-                  </span>
-                  <span className="agentNameTag">{agent.name}</span>
-                  <div className="workTooltip">
-                    <p className="workTooltipTitle">최근 작업 5개</p>
-                    <ol>
-                      {(recentLogsByAgent.get(agent.agent_id) ?? []).length === 0 ? (
-                        <li>아직 작업 로그 없음</li>
-                      ) : (
-                        (recentLogsByAgent.get(agent.agent_id) ?? []).slice().reverse().map((line, idx) => (
-                          <li key={`${agent.agent_id}-${idx}`}>{line}</li>
-                        ))
-                      )}
-                    </ol>
-                  </div>
-                </div>
-              );
-            })()
-          ))}
-        </div>
+        <h2>Pixel Office</h2>
+        <PixelOfficeCanvas state={state} />
       </section>
 
       <section className="card">
