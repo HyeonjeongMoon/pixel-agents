@@ -19,7 +19,6 @@ import { writeLayoutToFile, readLayoutFromFile, watchLayoutFile } from './layout
 import type { LayoutWatcher } from './layoutPersistence.js';
 
 export class PixelAgentsViewProvider implements vscode.WebviewViewProvider {
-	nextAgentId = { current: 1 };
 	nextTerminalIndex = { current: 1 };
 	agents = new Map<number, AgentState>();
 	webviewView: vscode.WebviewView | undefined;
@@ -64,7 +63,7 @@ export class PixelAgentsViewProvider implements vscode.WebviewViewProvider {
 		webviewView.webview.onDidReceiveMessage(async (message) => {
 			if (message.type === 'openClaude') {
 				launchNewTerminal(
-					this.nextAgentId, this.nextTerminalIndex,
+					this.nextTerminalIndex,
 					this.agents, this.activeAgentId, this.knownJsonlFiles,
 					this.fileWatchers, this.pollingTimers, this.waitingTimers, this.permissionTimers,
 					this.jsonlPollTimers, this.projectScanTimer,
@@ -92,7 +91,7 @@ export class PixelAgentsViewProvider implements vscode.WebviewViewProvider {
 			} else if (message.type === 'webviewReady') {
 				restoreAgents(
 					this.context,
-					this.nextAgentId, this.nextTerminalIndex,
+					this.nextTerminalIndex,
 					this.agents, this.knownJsonlFiles,
 					this.fileWatchers, this.pollingTimers, this.waitingTimers, this.permissionTimers,
 					this.jsonlPollTimers, this.projectScanTimer, this.activeAgentId,
@@ -110,7 +109,7 @@ export class PixelAgentsViewProvider implements vscode.WebviewViewProvider {
 				if (projectDir) {
 					ensureProjectScan(
 						projectDir, this.knownJsonlFiles, this.projectScanTimer, this.activeAgentId,
-						this.nextAgentId, this.agents,
+						this.agents,
 						this.fileWatchers, this.pollingTimers, this.waitingTimers, this.permissionTimers,
 						this.webview, this.persistAgents,
 					);

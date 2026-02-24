@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 import type { AgentState } from './types.js';
 import { cancelWaitingTimer, cancelPermissionTimer, clearAgentActivity } from './timerManager.js';
 import { processTranscriptLine } from './transcriptParser.js';
+import { stableAgentId } from './agentManager.js';
 import { FILE_WATCHER_POLL_INTERVAL_MS, PROJECT_SCAN_INTERVAL_MS } from './constants.js';
 
 export function startFileWatching(
@@ -87,7 +88,6 @@ export function ensureProjectScan(
 	knownJsonlFiles: Set<string>,
 	projectScanTimerRef: { current: ReturnType<typeof setInterval> | null },
 	activeAgentIdRef: { current: number | null },
-	nextAgentIdRef: { current: number },
 	agents: Map<number, AgentState>,
 	fileWatchers: Map<number, fs.FSWatcher>,
 	pollingTimers: Map<number, ReturnType<typeof setInterval>>,
@@ -109,7 +109,7 @@ export function ensureProjectScan(
 
 	projectScanTimerRef.current = setInterval(() => {
 		scanForNewJsonlFiles(
-			projectDir, knownJsonlFiles, activeAgentIdRef, nextAgentIdRef,
+			projectDir, knownJsonlFiles, activeAgentIdRef,
 			agents, fileWatchers, pollingTimers, waitingTimers, permissionTimers,
 			webview, persistAgents,
 		);
@@ -120,7 +120,6 @@ function scanForNewJsonlFiles(
 	projectDir: string,
 	knownJsonlFiles: Set<string>,
 	activeAgentIdRef: { current: number | null },
-	nextAgentIdRef: { current: number },
 	agents: Map<number, AgentState>,
 	fileWatchers: Map<number, fs.FSWatcher>,
 	pollingTimers: Map<number, ReturnType<typeof setInterval>>,
@@ -161,7 +160,7 @@ function scanForNewJsonlFiles(
 					if (!owned) {
 						adoptTerminalForFile(
 							activeTerminal, file, projectDir,
-							nextAgentIdRef, agents, activeAgentIdRef,
+							agents, activeAgentIdRef,
 							fileWatchers, pollingTimers, waitingTimers, permissionTimers,
 							webview, persistAgents,
 						);
@@ -176,7 +175,6 @@ function adoptTerminalForFile(
 	terminal: vscode.Terminal,
 	jsonlFile: string,
 	projectDir: string,
-	nextAgentIdRef: { current: number },
 	agents: Map<number, AgentState>,
 	activeAgentIdRef: { current: number | null },
 	fileWatchers: Map<number, fs.FSWatcher>,
@@ -186,7 +184,7 @@ function adoptTerminalForFile(
 	webview: vscode.Webview | undefined,
 	persistAgents: () => void,
 ): void {
-	const id = nextAgentIdRef.current++;
+	const id = stableAgentId(jsonlFile);
 	const agent: AgentState = {
 		id,
 		terminalRef: terminal,

@@ -8,6 +8,20 @@ import { startFileWatching, readNewLines, ensureProjectScan } from './fileWatche
 import { JSONL_POLL_INTERVAL_MS, TERMINAL_NAME_PREFIX, WORKSPACE_KEY_AGENTS, WORKSPACE_KEY_AGENT_SEATS } from './constants.js';
 import { migrateAndLoadLayout } from './layoutPersistence.js';
 
+/**
+ * Derive a stable numeric agent ID from the JSONL file path.
+ * Uses FNV-1a 32-bit hash so the same file always produces the same ID,
+ * even across VS Code restarts.
+ */
+export function stableAgentId(jsonlFile: string): number {
+	let h = 0x811c9dc5;
+	for (let i = 0; i < jsonlFile.length; i++) {
+		h ^= jsonlFile.charCodeAt(i);
+		h = Math.imul(h, 0x01000193);
+	}
+	return h >>> 0; // unsigned 32-bit integer
+}
+
 export function getProjectDirPath(cwd?: string): string | null {
 	const workspacePath = cwd || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 	if (!workspacePath) return null;
@@ -16,7 +30,6 @@ export function getProjectDirPath(cwd?: string): string | null {
 }
 
 export function launchNewTerminal(
-	nextAgentIdRef: { current: number },
 	nextTerminalIndexRef: { current: number },
 	agents: Map<number, AgentState>,
 	activeAgentIdRef: { current: number | null },
@@ -52,7 +65,7 @@ export function launchNewTerminal(
 	knownJsonlFiles.add(expectedFile);
 
 	// Create agent immediately (before JSONL file exists)
-	const id = nextAgentIdRef.current++;
+	const id = stableAgentId(expectedFile);
 	const agent: AgentState = {
 		id,
 		terminalRef: terminal,
@@ -78,7 +91,7 @@ export function launchNewTerminal(
 
 	ensureProjectScan(
 		projectDir, knownJsonlFiles, projectScanTimerRef, activeAgentIdRef,
-		nextAgentIdRef, agents, fileWatchers, pollingTimers, waitingTimers, permissionTimers,
+		agents, fileWatchers, pollingTimers, waitingTimers, permissionTimers,
 		webview, persistAgents,
 	);
 
@@ -149,7 +162,6 @@ export function persistAgents(
 
 export function restoreAgents(
 	context: vscode.ExtensionContext,
-	nextAgentIdRef: { current: number },
 	nextTerminalIndexRef: { current: number },
 	agents: Map<number, AgentState>,
 	knownJsonlFiles: Set<string>,
@@ -167,7 +179,6 @@ export function restoreAgents(
 	if (persisted.length === 0) return;
 
 	const liveTerminals = vscode.window.terminals;
-	let maxId = 0;
 	let maxIdx = 0;
 	let restoredProjectDir: string | null = null;
 
@@ -175,8 +186,10 @@ export function restoreAgents(
 		const terminal = liveTerminals.find(t => t.name === p.terminalName);
 		if (!terminal) continue;
 
+		// Re-derive stable ID from the JSONL path (same result as at creation time)
+		const id = stableAgentId(p.jsonlFile);
 		const agent: AgentState = {
-			id: p.id,
+			id,
 			terminalRef: terminal,
 			projectDir: p.projectDir,
 			jsonlFile: p.jsonlFile,
@@ -192,11 +205,10 @@ export function restoreAgents(
 			hadToolsInTurn: false,
 		};
 
-		agents.set(p.id, agent);
+		agents.set(id, agent);
 		knownJsonlFiles.add(p.jsonlFile);
-		console.log(`[Pixel Agents] Restored agent ${p.id} → terminal "${p.terminalName}"`);
+		console.log(`[Pixel Agents] Restored agent ${id} → terminal "${p.terminalName}"`);
 
-		if (p.id > maxId) maxId = p.id;
 		// Extract terminal index from name like "Claude Code #3"
 		const match = p.terminalName.match(/#(\d+)$/);
 		if (match) {
@@ -211,30 +223,26 @@ export function restoreAgents(
 			if (fs.existsSync(p.jsonlFile)) {
 				const stat = fs.statSync(p.jsonlFile);
 				agent.fileOffset = stat.size;
-				startFileWatching(p.id, p.jsonlFile, agents, fileWatchers, pollingTimers, waitingTimers, permissionTimers, webview);
+				startFileWatching(id, p.jsonlFile, agents, fileWatchers, pollingTimers, waitingTimers, permissionTimers, webview);
 			} else {
 				// Poll for the file to appear
 				const pollTimer = setInterval(() => {
 					try {
 						if (fs.existsSync(agent.jsonlFile)) {
-							console.log(`[Pixel Agents] Restored agent ${p.id}: found JSONL file`);
+							console.log(`[Pixel Agents] Restored agent ${id}: found JSONL file`);
 							clearInterval(pollTimer);
-							jsonlPollTimers.delete(p.id);
+							jsonlPollTimers.delete(id);
 							const stat = fs.statSync(agent.jsonlFile);
 							agent.fileOffset = stat.size;
-							startFileWatching(p.id, agent.jsonlFile, agents, fileWatchers, pollingTimers, waitingTimers, permissionTimers, webview);
+							startFileWatching(id, agent.jsonlFile, agents, fileWatchers, pollingTimers, waitingTimers, permissionTimers, webview);
 						}
 					} catch { /* file may not exist yet */ }
 				}, JSONL_POLL_INTERVAL_MS);
-				jsonlPollTimers.set(p.id, pollTimer);
+				jsonlPollTimers.set(id, pollTimer);
 			}
 		} catch { /* ignore errors during restore */ }
 	}
 
-	// Advance counters past restored IDs
-	if (maxId >= nextAgentIdRef.current) {
-		nextAgentIdRef.current = maxId + 1;
-	}
 	if (maxIdx >= nextTerminalIndexRef.current) {
 		nextTerminalIndexRef.current = maxIdx + 1;
 	}
@@ -246,7 +254,7 @@ export function restoreAgents(
 	if (restoredProjectDir) {
 		ensureProjectScan(
 			restoredProjectDir, knownJsonlFiles, projectScanTimerRef, activeAgentIdRef,
-			nextAgentIdRef, agents, fileWatchers, pollingTimers, waitingTimers, permissionTimers,
+			agents, fileWatchers, pollingTimers, waitingTimers, permissionTimers,
 			webview, doPersist,
 		);
 	}
