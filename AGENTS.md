@@ -8,6 +8,8 @@
 - Build output: `dist/` (extension bundle). Treat `dist/` and generated files as build artifacts.
 
 ## Build, Test, and Development Commands
+- Package manager policy: use `npm` as the default package manager in this repository.
+- Do not switch lockfile/workflow to `pnpm` unless explicitly requested.
 - `npm run build`: full verification + production build (type-check, lint, extension bundle, webview build).
 - `npm run watch`: extension-side live workflow (`esbuild --watch` + `tsc --watch`).
 - `npm run build:webview`: rebuild only the React/Vite webview.

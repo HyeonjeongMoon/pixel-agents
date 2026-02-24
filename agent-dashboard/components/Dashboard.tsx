@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { applyEvent } from "@/lib/reducer";
 import type { AgentEvent, StateSnapshot } from "@/lib/types";
+import type { DashboardDataSource } from "@/lib/dataSource";
 
 interface Props {
   initialSnapshot: StateSnapshot;
   events: AgentEvent[];
+  dataSource: DashboardDataSource;
 }
 
 function bubbleLabel(type: "waiting" | "permission" | null, visible: boolean): string {
@@ -59,17 +61,26 @@ function eventLogLine(event: AgentEvent): string | null {
   }
 }
 
-export default function Dashboard({ initialSnapshot, events }: Props) {
+export default function Dashboard({ initialSnapshot, events, dataSource }: Props) {
+  const isLive = dataSource === "live";
   const [cursor, setCursor] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [liveSnapshot, setLiveSnapshot] = useState<StateSnapshot>(initialSnapshot);
+  const [liveEvents, setLiveEvents] = useState<AgentEvent[]>(events);
+  const lastSeqRef = useRef<number>(events.at(-1)?.seq ?? 0);
 
-  const state = useMemo(() => {
+  const eventList = isLive ? liveEvents : events;
+  const appliedCursor = isLive ? eventList.length : cursor;
+
+  const replayState = useMemo(() => {
     let next = initialSnapshot;
-    for (let i = 0; i < cursor; i += 1) {
-      next = applyEvent(next, events[i]);
+    for (let i = 0; i < appliedCursor; i += 1) {
+      next = applyEvent(next, eventList[i]);
     }
     return next;
-  }, [cursor, events, initialSnapshot]);
+  }, [appliedCursor, eventList, initialSnapshot]);
+
+  const state = isLive ? liveSnapshot : replayState;
 
   const recentLogsByAgent = useMemo(() => {
     const logs = new Map<string, string[]>();
@@ -77,8 +88,8 @@ export default function Dashboard({ initialSnapshot, events }: Props) {
       logs.set(agent.agent_id, []);
     }
 
-    for (let i = 0; i < cursor; i += 1) {
-      const event = events[i];
+    for (let i = 0; i < appliedCursor; i += 1) {
+      const event = eventList[i];
       const line = eventLogLine(event);
       if (!line) continue;
       const current = logs.get(event.agent_id) ?? [];
@@ -86,37 +97,87 @@ export default function Dashboard({ initialSnapshot, events }: Props) {
       logs.set(event.agent_id, current.slice(-5));
     }
     return logs;
-  }, [cursor, events, initialSnapshot.agents]);
+  }, [appliedCursor, eventList, initialSnapshot.agents]);
 
-  const progress = `${cursor}/${events.length}`;
+  const progress = `${appliedCursor}/${eventList.length}`;
 
   useEffect(() => {
+    if (isLive) return;
     if (!isPlaying) return;
-    if (cursor >= events.length) {
+    if (cursor >= eventList.length) {
       setIsPlaying(false);
       return;
     }
     const timer = setInterval(() => {
       setCursor((prev) => {
-        if (prev >= events.length) {
+        if (prev >= eventList.length) {
           return prev;
         }
         return prev + 1;
       });
     }, 200);
     return () => clearInterval(timer);
-  }, [isPlaying, cursor, events.length]);
+  }, [isLive, isPlaying, cursor, eventList.length]);
+
+  useEffect(() => {
+    if (!isLive) {
+      setLiveSnapshot(initialSnapshot);
+      setLiveEvents(events);
+      lastSeqRef.current = events.at(-1)?.seq ?? 0;
+      return;
+    }
+
+    let cancelled = false;
+
+    const syncBootstrap = async () => {
+      const [snapshotRes, eventsRes] = await Promise.all([
+        fetch("/api/v1/state", { cache: "no-store" }),
+        fetch("/api/v1/events", { cache: "no-store" }),
+      ]);
+      if (!snapshotRes.ok || !eventsRes.ok || cancelled) return;
+      const [nextSnapshot, nextEvents] = await Promise.all([
+        snapshotRes.json() as Promise<StateSnapshot>,
+        eventsRes.json() as Promise<AgentEvent[]>,
+      ]);
+      if (cancelled) return;
+      setLiveSnapshot(nextSnapshot);
+      setLiveEvents(nextEvents);
+      lastSeqRef.current = nextEvents.at(-1)?.seq ?? 0;
+    };
+
+    void syncBootstrap();
+
+    const source = new EventSource(`/api/v1/stream?after_seq=${lastSeqRef.current}`);
+    source.addEventListener("message", (rawEvent) => {
+      try {
+        const event = JSON.parse(rawEvent.data) as AgentEvent;
+        setLiveEvents((prev) => {
+          if (prev.some((item) => item.seq === event.seq)) return prev;
+          return [...prev, event];
+        });
+        setLiveSnapshot((prev) => applyEvent(prev, event));
+        lastSeqRef.current = Math.max(lastSeqRef.current, event.seq);
+      } catch {
+        // ignore malformed stream lines
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      source.close();
+    };
+  }, [isLive, initialSnapshot, events]);
 
   const step = () => {
     setIsPlaying(false);
-    setCursor((prev) => Math.min(prev + 1, events.length));
+    setCursor((prev) => Math.min(prev + 1, eventList.length));
   };
   const reset = () => {
     setIsPlaying(false);
     setCursor(0);
   };
   const playAll = () => {
-    if (cursor >= events.length) return;
+    if (cursor >= eventList.length) return;
     setIsPlaying((prev) => !prev);
   };
 
@@ -124,15 +185,21 @@ export default function Dashboard({ initialSnapshot, events }: Props) {
     <main className="page">
       <header className="header">
         <div>
-          <h1>Agent Dashboard (Mock)</h1>
+          <h1>{isLive ? "Agent Dashboard (Live)" : "Agent Dashboard (Mock)"}</h1>
           <p>run_id: {state.run_id}</p>
         </div>
         <div className="controls">
-          <button onClick={step} disabled={cursor >= events.length}>Step</button>
-          <button onClick={playAll} disabled={cursor >= events.length}>
-            {isPlaying ? "Pause" : "Play All"}
-          </button>
-          <button onClick={reset} disabled={cursor === 0}>Reset</button>
+          {isLive ? (
+            <button disabled>Live Streaming</button>
+          ) : (
+            <>
+              <button onClick={step} disabled={cursor >= eventList.length}>Step</button>
+              <button onClick={playAll} disabled={cursor >= eventList.length}>
+                {isPlaying ? "Pause" : "Play All"}
+              </button>
+              <button onClick={reset} disabled={cursor === 0}>Reset</button>
+            </>
+          )}
         </div>
       </header>
 
@@ -235,8 +302,8 @@ export default function Dashboard({ initialSnapshot, events }: Props) {
       <section className="card">
         <h2>Events</h2>
         <ol className="events">
-          {events.map((event, index) => (
-            <li key={event.seq} className={index < cursor ? "event done" : "event"}>
+          {eventList.map((event, index) => (
+            <li key={event.seq} className={index < appliedCursor ? "event done" : "event"}>
               <span>#{event.seq}</span>
               <span>{event.type}</span>
               <span>{event.agent_id}</span>
@@ -252,8 +319,14 @@ export default function Dashboard({ initialSnapshot, events }: Props) {
           <li><code>data/openapi/openapi.yaml</code></li>
           <li><code>data/schemas/event-envelope.schema.json</code></li>
           <li><code>data/schemas/state-snapshot.schema.json</code></li>
-          <li><code>data/mocks/state.snapshot.json</code></li>
-          <li><code>data/mocks/events.json</code></li>
+          {isLive ? (
+            <li><code>~/.claude/projects/&lt;workspace-hash&gt;/*.jsonl</code></li>
+          ) : (
+            <>
+              <li><code>data/mocks/state.snapshot.json</code></li>
+              <li><code>data/mocks/events.json</code></li>
+            </>
+          )}
         </ul>
       </section>
     </main>

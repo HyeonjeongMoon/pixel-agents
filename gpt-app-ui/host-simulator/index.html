@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GPT App UI Host Simulator</title>
+    <style>
+      body { margin: 0; font-family: system-ui, sans-serif; background: #eef4f7; color: #1d2d38; }
+      .wrap { display: grid; grid-template-columns: 360px 1fr; height: 100vh; }
+      .panel { border-right: 1px solid #b7c7d2; padding: 14px; overflow: auto; background: #fff; }
+      .panel h1 { margin: 0 0 10px; font-size: 18px; }
+      .panel button { margin: 0 6px 8px 0; }
+      .viewer { padding: 14px; }
+      iframe { width: 100%; height: calc(100vh - 28px); border: 1px solid #b7c7d2; border-radius: 10px; background: #fff; }
+      #log { font-size: 12px; white-space: pre-wrap; background: #f4f8fa; border: 1px solid #ccd8df; border-radius: 8px; padding: 8px; min-height: 180px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <aside class="panel">
+        <h1>Host Simulator</h1>
+        <p style="margin-top:0;font-size:13px;">Send MCP Apps JSON-RPC notifications to the iframe and inspect requests.</p>
+
+        <button id="sendResult">Send tool-result</button>
+        <button id="sendInput">Send tool-input</button>
+        <button id="setGlobals">Dispatch openai:set_globals</button>
+
+        <h3 style="margin:12px 0 8px;">Host log</h3>
+        <div id="log"></div>
+      </aside>
+
+      <section class="viewer">
+        <iframe id="widget" src="../web/index.html" title="Widget"></iframe>
+      </section>
+    </div>
+
+    <script type="module" src="./simulator.js"></script>
+  </body>
+</html>

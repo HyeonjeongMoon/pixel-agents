@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { loadEvents } from "@/lib/mockStore";
+import { loadAgentEvents } from "@/lib/dataSource";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  const events = loadEvents();
-  const afterSeq = Number(request.nextUrl.searchParams.get("after_seq") ?? "0");
+  const rawAfterSeq = Number(request.nextUrl.searchParams.get("after_seq") ?? "0");
+  const afterSeq = Number.isFinite(rawAfterSeq) && rawAfterSeq > 0 ? rawAfterSeq : 0;
+  const events = loadAgentEvents(afterSeq);
 
-  if (Number.isNaN(afterSeq) || afterSeq <= 0) {
-    return NextResponse.json(events);
-  }
-
-  return NextResponse.json(events.filter((event) => event.seq > afterSeq));
+  return NextResponse.json(events);
 }
