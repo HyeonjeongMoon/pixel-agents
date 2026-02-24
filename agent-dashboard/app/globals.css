@@ -260,6 +260,38 @@ button:disabled {
   background: #fff2ce;
 }
 
+.workSpeech {
+  position: absolute;
+  left: 50%;
+  top: -32px;
+  transform: translateX(-50%);
+  max-width: 220px;
+  border: 2px solid #1f2a30;
+  background: #fffdf6;
+  padding: 2px 6px;
+  font-size: 10px;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  z-index: 7;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+.workSpeech::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 100%;
+  width: 8px;
+  height: 6px;
+  border-left: 2px solid #1f2a30;
+  border-right: 2px solid #1f2a30;
+  border-bottom: 2px solid #1f2a30;
+  background: #fffdf6;
+}
+
 .agentNameTag {
   position: absolute;
   top: 27px;

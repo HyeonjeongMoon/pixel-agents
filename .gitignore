@@ -6,4 +6,9 @@ node_modules
 .claude/
 /logs
 /sprites-export
-.env
+.env# Agent dashboard artifacts
+agent-dashboard/.next/
+agent-dashboard/node_modules/
+agent-dashboard/*.tsbuildinfo
+agent-dashboard/.DS_Store
+agent-dashboard/public/.DS_Store

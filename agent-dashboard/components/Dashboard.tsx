@@ -26,6 +26,14 @@ function displayStatus(status: string): string {
   return status === "waiting" ? "idle" : status;
 }
 
+function speechText(status: string, toolStatus: string | null): string | null {
+  if (displayStatus(status) !== "active") return null;
+  if (!toolStatus) return null;
+  const cleaned = toolStatus.replace(/\s*\(완료\)\s*$/u, "").trim();
+  if (!cleaned) return null;
+  return cleaned.length > 36 ? `${cleaned.slice(0, 36)}…` : cleaned;
+}
+
 function eventLogLine(event: AgentEvent): string | null {
   const time = event.ts.slice(11, 19);
   switch (event.type) {
@@ -162,39 +170,45 @@ export default function Dashboard({ initialSnapshot, events }: Props) {
           ))}
 
           {state.agents.map((agent) => (
-            <div
-              key={agent.agent_id}
-              className="agentSpriteWrap"
-              style={
-                {
-                  "--col": agent.position.col,
-                  "--row": agent.position.row,
-                } as CSSProperties
-              }
-              title={`${agent.name} (${agent.status})`}
-            >
-              {agent.bubble.visible && agent.bubble.type ? (
-                <span className={`bubble ${agent.bubble.type}`}>{agent.bubble.type}</span>
-              ) : null}
-              <span className={statusClass(agent.status)}>
-                <span className="head" />
-                <span className="body" />
-                <span className="legs" />
-              </span>
-              <span className="agentNameTag">{agent.name}</span>
-              <div className="workTooltip">
-                <p className="workTooltipTitle">최근 작업 5개</p>
-                <ol>
-                  {(recentLogsByAgent.get(agent.agent_id) ?? []).length === 0 ? (
-                    <li>아직 작업 로그 없음</li>
-                  ) : (
-                    (recentLogsByAgent.get(agent.agent_id) ?? []).slice().reverse().map((line, idx) => (
-                      <li key={`${agent.agent_id}-${idx}`}>{line}</li>
-                    ))
-                  )}
-                </ol>
-              </div>
-            </div>
+            (() => {
+              const speech = speechText(agent.status, agent.tool_status);
+              return (
+                <div
+                  key={agent.agent_id}
+                  className="agentSpriteWrap"
+                  style={
+                    {
+                      "--col": agent.position.col,
+                      "--row": agent.position.row,
+                    } as CSSProperties
+                  }
+                  title={`${agent.name} (${agent.status})`}
+                >
+                  {speech ? <div className="workSpeech">{speech}</div> : null}
+                  {agent.bubble.visible && agent.bubble.type ? (
+                    <span className={`bubble ${agent.bubble.type}`}>{agent.bubble.type}</span>
+                  ) : null}
+                  <span className={statusClass(agent.status)}>
+                    <span className="head" />
+                    <span className="body" />
+                    <span className="legs" />
+                  </span>
+                  <span className="agentNameTag">{agent.name}</span>
+                  <div className="workTooltip">
+                    <p className="workTooltipTitle">최근 작업 5개</p>
+                    <ol>
+                      {(recentLogsByAgent.get(agent.agent_id) ?? []).length === 0 ? (
+                        <li>아직 작업 로그 없음</li>
+                      ) : (
+                        (recentLogsByAgent.get(agent.agent_id) ?? []).slice().reverse().map((line, idx) => (
+                          <li key={`${agent.agent_id}-${idx}`}>{line}</li>
+                        ))
+                      )}
+                    </ol>
+                  </div>
+                </div>
+              );
+            })()
           ))}
         </div>
       </section>
