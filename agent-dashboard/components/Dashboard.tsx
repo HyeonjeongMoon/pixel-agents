@@ -67,20 +67,32 @@ export default function Dashboard({ initialSnapshot, events, dataSource }: Props
   const [isPlaying, setIsPlaying] = useState(false);
   const [liveSnapshot, setLiveSnapshot] = useState<StateSnapshot>(initialSnapshot);
   const [liveEvents, setLiveEvents] = useState<AgentEvent[]>(events);
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [simulationCursor, setSimulationCursor] = useState(0);
   const lastSeqRef = useRef<number>(events.at(-1)?.seq ?? 0);
 
   const eventList = isLive ? liveEvents : events;
-  const appliedCursor = isLive ? eventList.length : cursor;
+  const liveBaseSnapshot = useMemo<StateSnapshot>(() => ({
+    run_id: "live-run",
+    snapshot_ts: new Date(0).toISOString(),
+    layout: { ...liveSnapshot.layout, furniture: liveSnapshot.layout.furniture?.map((item) => ({ ...item })) },
+    agents: [],
+  }), [liveSnapshot.layout]);
+  const appliedCursor = isLive
+    ? (isSimulating ? simulationCursor : eventList.length)
+    : cursor;
 
   const replayState = useMemo(() => {
-    let next = initialSnapshot;
+    let next = isLive ? liveBaseSnapshot : initialSnapshot;
     for (let i = 0; i < appliedCursor; i += 1) {
       next = applyEvent(next, eventList[i]);
     }
     return next;
-  }, [appliedCursor, eventList, initialSnapshot]);
+  }, [appliedCursor, eventList, initialSnapshot, isLive, liveBaseSnapshot]);
 
-  const state = isLive ? liveSnapshot : replayState;
+  const state = isLive
+    ? (isSimulating ? replayState : liveSnapshot)
+    : replayState;
 
   const recentLogsByAgent = useMemo(() => {
     const logs = new Map<string, string[]>();
@@ -123,6 +135,8 @@ export default function Dashboard({ initialSnapshot, events, dataSource }: Props
     if (!isLive) {
       setLiveSnapshot(initialSnapshot);
       setLiveEvents(events);
+      setIsSimulating(false);
+      setSimulationCursor(0);
       lastSeqRef.current = events.at(-1)?.seq ?? 0;
       return;
     }
@@ -168,6 +182,29 @@ export default function Dashboard({ initialSnapshot, events, dataSource }: Props
     };
   }, [isLive, initialSnapshot, events]);
 
+  useEffect(() => {
+    if (!isLive || !isSimulating) return;
+    if (simulationCursor >= eventList.length) {
+      setIsSimulating(false);
+      return;
+    }
+
+    const current = eventList[simulationCursor];
+    const previous = simulationCursor > 0 ? eventList[simulationCursor - 1] : null;
+    const currentMs = Date.parse(current?.ts ?? "");
+    const previousMs = previous ? Date.parse(previous.ts) : Number.NaN;
+    const rawDelta = Number.isFinite(currentMs) && Number.isFinite(previousMs)
+      ? Math.max(0, currentMs - previousMs)
+      : 0;
+    const delayMs = simulationCursor === 0 ? 0 : Math.max(20, Math.floor(rawDelta / 2));
+
+    const timer = setTimeout(() => {
+      setSimulationCursor((prev) => Math.min(prev + 1, eventList.length));
+    }, delayMs);
+
+    return () => clearTimeout(timer);
+  }, [isLive, isSimulating, simulationCursor, eventList]);
+
   const step = () => {
     setIsPlaying(false);
     setCursor((prev) => Math.min(prev + 1, eventList.length));
@@ -180,6 +217,16 @@ export default function Dashboard({ initialSnapshot, events, dataSource }: Props
     if (cursor >= eventList.length) return;
     setIsPlaying((prev) => !prev);
   };
+  const startSimulation = () => {
+    if (!isLive) return;
+    setIsSimulating(true);
+    setSimulationCursor(0);
+  };
+  const stopSimulation = () => {
+    if (!isLive) return;
+    setIsSimulating(false);
+    setSimulationCursor(0);
+  };
 
   return (
     <main className="page">
@@ -190,7 +237,14 @@ export default function Dashboard({ initialSnapshot, events, dataSource }: Props
         </div>
         <div className="controls">
           {isLive ? (
-            <button disabled>Live Streaming</button>
+            <>
+              <button onClick={startSimulation} disabled={isSimulating || eventList.length === 0}>
+                Simulate (x2)
+              </button>
+              <button onClick={stopSimulation} disabled={!isSimulating}>
+                Stop Sim
+              </button>
+            </>
           ) : (
             <>
               <button onClick={step} disabled={cursor >= eventList.length}>Step</button>

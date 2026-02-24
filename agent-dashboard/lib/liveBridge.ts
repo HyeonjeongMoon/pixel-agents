@@ -328,7 +328,7 @@ class LiveAgentBridge {
       if (!toolId) continue;
       this.emit("agent.tool.finished", agentId, { tool_id: toolId });
       tools?.delete(toolId);
-      this.removeSubagentForTask(toolId);
+      this.completeSubagentForTask(toolId);
     }
   }
 
@@ -423,13 +423,13 @@ class LiveAgentBridge {
     return subAgentId;
   }
 
-  private removeSubagentForTask(parentToolUseID: string): void {
+  private completeSubagentForTask(parentToolUseID: string): void {
     const subAgentId = this.subAgentByParentToolId.get(parentToolUseID);
-    if (!subAgentId) return;
-
-    this.emit("agent.subagent.removed", subAgentId, {});
-    this.activeTools.delete(subAgentId);
-    this.subAgentByParentToolId.delete(parentToolUseID);
+    if (subAgentId) {
+      this.emit("agent.status.changed", subAgentId, { status: "idle" });
+      this.emit("agent.tools.cleared", subAgentId, {});
+      this.activeTools.delete(subAgentId);
+    }
     this.taskMetaByToolId.delete(parentToolUseID);
   }
 
