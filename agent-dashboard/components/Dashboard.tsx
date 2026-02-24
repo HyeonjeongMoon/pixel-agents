@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { applyEvent } from "@/lib/reducer";
 import type { AgentEvent, StateSnapshot } from "@/lib/types";
@@ -11,6 +11,17 @@ interface Props {
   events: AgentEvent[];
   dataSource: DashboardDataSource;
 }
+
+const DESK_LABELS: Record<string, string> = {
+  "dev-desk-1": "Frontend Pod",
+  "dev-desk-2": "Backend Pod",
+  "dev-desk-3": "Design Pod",
+  "dev-desk-4": "Planning Pod",
+  "dev-desk-5": "QA Pod",
+  "dev-desk-6": "Infra Pod",
+  "dev-desk-7": "Data Pod",
+  "dev-desk-8": "Research Pod",
+};
 
 function bubbleLabel(type: "waiting" | "permission" | null, visible: boolean): string {
   if (!visible || !type) return "-";
@@ -196,7 +207,7 @@ export default function Dashboard({ initialSnapshot, events, dataSource }: Props
     const rawDelta = Number.isFinite(currentMs) && Number.isFinite(previousMs)
       ? Math.max(0, currentMs - previousMs)
       : 0;
-    const delayMs = simulationCursor === 0 ? 0 : Math.max(20, Math.floor(rawDelta / 2));
+    const delayMs = simulationCursor === 0 ? 0 : Math.max(20, Math.floor(rawDelta));
 
     const timer = setTimeout(() => {
       setSimulationCursor((prev) => Math.min(prev + 1, eventList.length));
@@ -239,7 +250,7 @@ export default function Dashboard({ initialSnapshot, events, dataSource }: Props
           {isLive ? (
             <>
               <button onClick={startSimulation} disabled={isSimulating || eventList.length === 0}>
-                Simulate (x2)
+                Simulate (x1)
               </button>
               <button onClick={stopSimulation} disabled={!isSimulating}>
                 Stop Sim
@@ -275,19 +286,34 @@ export default function Dashboard({ initialSnapshot, events, dataSource }: Props
           }
         >
           {(state.layout.furniture ?? []).map((item) => (
-            <div
-              key={item.id}
-              className={`furniture furniture-${item.type}`}
-              style={
-                {
-                  "--col": item.col,
-                  "--row": item.row,
-                  "--w": item.w ?? 1,
-                  "--h": item.h ?? 1,
-                } as CSSProperties
-              }
-              title={`${item.type} (${item.col}, ${item.row})`}
-            />
+            <Fragment key={item.id}>
+              <div
+                className={`furniture furniture-${item.type}`}
+                style={
+                  {
+                    "--col": item.col,
+                    "--row": item.row,
+                    "--w": item.w ?? 1,
+                    "--h": item.h ?? 1,
+                  } as CSSProperties
+                }
+                title={`${item.type} (${item.col}, ${item.row})`}
+              />
+              {item.id in DESK_LABELS ? (
+                <div
+                  className="deskLabel"
+                  style={
+                    {
+                      "--col": item.col,
+                      "--row": item.row,
+                      "--w": item.w ?? 1,
+                    } as CSSProperties
+                  }
+                >
+                  {DESK_LABELS[item.id]}
+                </div>
+              ) : null}
+            </Fragment>
           ))}
 
           {state.agents.map((agent) => (

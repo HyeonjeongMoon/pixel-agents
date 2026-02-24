@@ -24,6 +24,13 @@ interface TaskMeta {
   description: string | null;
 }
 
+interface DeskTarget {
+  seatId: string;
+  col: number;
+  row: number;
+  label: string;
+}
+
 function normalizeWorkspacePath(workspacePath: string): string {
   return workspacePath.replace(/[:\\/]/g, "-");
 }
@@ -84,6 +91,10 @@ class LiveAgentBridge {
 
   private readonly subAgentByParentToolId = new Map<string, string>();
 
+  private readonly deskTargets: DeskTarget[];
+
+  private readonly agentDeskById = new Map<string, DeskTarget>();
+
   private readonly baseSnapshot: StateSnapshot;
 
   private state: StateSnapshot;
@@ -98,6 +109,8 @@ class LiveAgentBridge {
 
   private agentCounter = 0;
 
+  private deskCursor = 0;
+
   constructor() {
     this.claudeProjectDir = resolveClaudeProjectDir();
     this.baseSnapshot = loadSnapshot();
@@ -108,6 +121,7 @@ class LiveAgentBridge {
       agents: [],
     };
     this.seatPool = this.buildSeatPool(this.baseSnapshot);
+    this.deskTargets = this.buildDeskTargets(this.baseSnapshot);
   }
 
   start(): void {
@@ -154,6 +168,30 @@ class LiveAgentBridge {
       }
     }
     return fallback.length > 0 ? fallback : [{ col: 2, row: 2 }];
+  }
+
+  private buildDeskTargets(snapshot: StateSnapshot): DeskTarget[] {
+    const labels = [
+      "Frontend Pod",
+      "Backend Pod",
+      "Design Pod",
+      "Planning Pod",
+      "QA Pod",
+      "Infra Pod",
+      "Data Pod",
+      "Research Pod",
+    ];
+
+    const desks = (snapshot.layout.furniture ?? [])
+      .filter((item) => item.id.startsWith("dev-desk-"))
+      .sort((a, b) => a.id.localeCompare(b.id));
+
+    return desks.map((desk, index) => ({
+      seatId: desk.id,
+      col: desk.col + Math.floor((desk.w ?? 1) / 2),
+      row: desk.row + (desk.h ?? 1),
+      label: labels[index] ?? `Workspace ${index + 1}`,
+    }));
   }
 
   private scanAndAttach(): void {
@@ -240,12 +278,13 @@ class LiveAgentBridge {
     const agentId = `claude-${sessionId.slice(0, 8)}`;
     this.sessionToAgentId.set(sessionId, agentId);
 
+    const desk = this.assignDesk(agentId);
     const seat = this.seatPool[(this.agentCounter - 1) % this.seatPool.length];
     this.emit("agent.created", agentId, {
       name: `Claude #${this.agentCounter}`,
-      seat_id: `seat-${this.agentCounter}`,
-      col: seat.col,
-      row: seat.row,
+      seat_id: desk?.seatId ?? `seat-${this.agentCounter}`,
+      col: desk?.col ?? seat.col,
+      row: desk?.row ?? seat.row,
     });
     return agentId;
   }
@@ -313,6 +352,7 @@ class LiveAgentBridge {
         tool_name: toolName,
         status,
       });
+      this.moveAgentToDesk(agentId);
     }
   }
 
@@ -374,6 +414,7 @@ class LiveAgentBridge {
           tool_name: toolName,
           status,
         });
+        this.moveAgentToDesk(subAgentId);
       }
       return;
     }
@@ -402,22 +443,17 @@ class LiveAgentBridge {
     const subAgentId = `sub-${subRawId}`;
     this.subAgentByParentToolId.set(parentToolUseID, subAgentId);
 
+    const desk = this.assignDesk(subAgentId);
     const parent = this.state.agents.find((agent) => agent.agent_id === parentAgentId);
     const baseCol = parent?.position.col ?? 2;
     const baseRow = parent?.position.row ?? 2;
-    const offset = this.subAgentByParentToolId.size % 4;
-    const position = [
-      { col: baseCol + 1, row: baseRow },
-      { col: baseCol, row: baseRow + 1 },
-      { col: baseCol - 1, row: baseRow },
-      { col: baseCol, row: baseRow - 1 },
-    ][offset];
 
     this.emit("agent.subagent.created", subAgentId, {
       name: description ?? `Subagent ${subRawId.slice(0, 6)}`,
       parent_agent_id: parentAgentId,
-      col: Math.max(0, Math.min(this.baseSnapshot.layout.cols - 1, position.col)),
-      row: Math.max(0, Math.min(this.baseSnapshot.layout.rows - 1, position.row)),
+      seat_id: desk?.seatId ?? null,
+      col: Math.max(0, Math.min(this.baseSnapshot.layout.cols - 1, desk?.col ?? baseCol)),
+      row: Math.max(0, Math.min(this.baseSnapshot.layout.rows - 1, desk?.row ?? baseRow)),
     });
 
     return subAgentId;
@@ -431,6 +467,31 @@ class LiveAgentBridge {
       this.activeTools.delete(subAgentId);
     }
     this.taskMetaByToolId.delete(parentToolUseID);
+  }
+
+  private assignDesk(agentId: string): DeskTarget | null {
+    const existing = this.agentDeskById.get(agentId);
+    if (existing) return existing;
+    if (this.deskTargets.length === 0) return null;
+
+    const desk = this.deskTargets[this.deskCursor % this.deskTargets.length];
+    this.deskCursor += 1;
+    this.agentDeskById.set(agentId, desk);
+    return desk;
+  }
+
+  private moveAgentToDesk(agentId: string): void {
+    const desk = this.assignDesk(agentId);
+    if (!desk) return;
+
+    const jitter = (this.seq % 3) - 1;
+    this.emit("agent.seat.assigned", agentId, { seat_id: desk.seatId });
+    this.emit("agent.position.changed", agentId, {
+      position: {
+        col: Math.max(0, Math.min(this.baseSnapshot.layout.cols - 1, desk.col + jitter)),
+        row: Math.max(0, Math.min(this.baseSnapshot.layout.rows - 1, desk.row)),
+      },
+    });
   }
 
   private emit(type: AgentEvent["type"], agentId: string, payload: Record<string, unknown>): void {
