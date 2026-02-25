@@ -71,6 +71,11 @@ export function useExtensionMessages(
 
   // Track whether initial layout has been loaded (ref to avoid re-render)
   const layoutReadyRef = useRef(false)
+  // Keep callbacks in refs so the handler always uses current values without re-running the effect
+  const onLayoutLoadedRef = useRef(onLayoutLoaded)
+  const isEditDirtyRef = useRef(isEditDirty)
+  useEffect(() => { onLayoutLoadedRef.current = onLayoutLoaded })
+  useEffect(() => { isEditDirtyRef.current = isEditDirty })
 
   useEffect(() => {
     // Buffer agents from existingAgents until layout is loaded
@@ -82,7 +87,7 @@ export function useExtensionMessages(
 
       if (msg.type === 'layoutLoaded') {
         // Skip external layout updates while editor has unsaved changes
-        if (layoutReadyRef.current && isEditDirty?.()) {
+        if (layoutReadyRef.current && isEditDirtyRef.current?.()) {
           console.log('[Webview] Skipping external layout update — editor has unsaved changes')
           return
         }
@@ -90,7 +95,7 @@ export function useExtensionMessages(
         const layout = rawLayout && rawLayout.version === 1 ? migrateLayoutColors(rawLayout) : null
         if (layout) {
           os.rebuildFromLayout(layout)
-          onLayoutLoaded?.(layout)
+          onLayoutLoadedRef.current?.(layout)
         } else {
           // Default layout — snapshot whatever OfficeState built
           onLayoutLoaded?.(os.getLayout())
@@ -346,7 +351,8 @@ export function useExtensionMessages(
     window.addEventListener('message', handler)
     vscode.postMessage({ type: 'webviewReady' })
     return () => window.removeEventListener('message', handler)
-  }, [getOfficeState])
+  // getOfficeState is a stable module-level function; callbacks are captured via refs above
+  }, [])
 
   return { agents, selectedAgent, agentTools, agentStatuses, subagentTools, subagentCharacters, layoutReady, loadedAssets }
 }
