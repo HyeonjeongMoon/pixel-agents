@@ -1064,6 +1064,11 @@ export function getCharacterSprites(paletteIndex: number, hueShift = 0): Charact
     const rt = char.right
     const flip = flipSpriteHorizontal
 
+    // PNG frame layout per direction row (7 frames, 16px wide each):
+    //   [0]=walk1  [1]=walk2/stand  [2]=walk3  [3]=type1  [4]=type2  [5]=read1  [6]=read2
+    // Walk cycle: [0,1,2,1] — left-step, stand, right-step, stand (4 frames)
+    // Typing:     [3,4]     — hands-on-keyboard alternating (2 frames)
+    // Reading:    [5,6]     — reading pose alternating (2 frames)
     sprites = {
       walk: {
         [Dir.DOWN]: [d[0], d[1], d[2], d[1]],
