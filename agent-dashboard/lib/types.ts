@@ -2,6 +2,8 @@ export type AgentStatus = "active" | "waiting" | "idle" | "error";
 
 export type AgentKind = "primary" | "subagent";
 
+export type RuntimeSource = "mock" | "claude" | "generic";
+
 export interface Position {
   col: number;
   row: number;
@@ -79,6 +81,16 @@ export interface AgentEvent {
   seq: number;
   ts: string;
   run_id: string;
+  source?: RuntimeSource;
+  type: EventType;
+  agent_id: string;
+  payload: Record<string, unknown>;
+}
+
+export interface IngestEventInput {
+  ts?: string;
+  run_id?: string;
+  source?: RuntimeSource;
   type: EventType;
   agent_id: string;
   payload: Record<string, unknown>;

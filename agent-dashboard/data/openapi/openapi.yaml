@@ -11,6 +11,13 @@ paths:
     get:
       summary: 현재 전체 상태 스냅샷
       operationId: getState
+      parameters:
+        - in: query
+          name: source
+          schema:
+            type: string
+            enum: [mock, claude, generic]
+          description: 이벤트 소스 선택
       responses:
         '200':
           description: 상태 스냅샷
@@ -22,6 +29,13 @@ paths:
     get:
       summary: 현재 레이아웃 메타 정보
       operationId: getLayout
+      parameters:
+        - in: query
+          name: source
+          schema:
+            type: string
+            enum: [mock, claude, generic]
+          description: 이벤트 소스 선택
       responses:
         '200':
           description: 레이아웃
@@ -41,6 +55,12 @@ paths:
       operationId: listEvents
       parameters:
         - in: query
+          name: source
+          schema:
+            type: string
+            enum: [mock, claude, generic]
+          description: 이벤트 소스 선택
+        - in: query
           name: after_seq
           schema:
             type: integer
@@ -59,6 +79,19 @@ paths:
     get:
       summary: 단순 SSE 스트림(데모)
       operationId: streamEvents
+      parameters:
+        - in: query
+          name: source
+          schema:
+            type: string
+            enum: [mock, claude, generic]
+          description: 이벤트 소스 선택
+        - in: query
+          name: after_seq
+          schema:
+            type: integer
+            minimum: 0
+          description: 주어진 seq 이후 이벤트만 스트리밍
       responses:
         '200':
           description: text/event-stream
@@ -66,4 +99,65 @@ paths:
             text/event-stream:
               schema:
                 type: string
-components: {}
+  /api/v1/ingest:
+    post:
+      summary: generic 소스로 이벤트를 주입
+      operationId: ingestEvents
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/IngestEventInput'
+                - type: array
+                  items:
+                    $ref: '#/components/schemas/IngestEventInput'
+      responses:
+        '200':
+          description: 수락 결과
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accepted:
+                    type: integer
+                  last_seq:
+                    type: integer
+                    nullable: true
+                  run_id:
+                    type: string
+                    nullable: true
+                required: [accepted, last_seq, run_id]
+components:
+  schemas:
+    IngestEventInput:
+      type: object
+      properties:
+        ts:
+          type: string
+          format: date-time
+        run_id:
+          type: string
+        type:
+          type: string
+          enum:
+            - agent.created
+            - agent.status.changed
+            - agent.tool.started
+            - agent.tool.finished
+            - agent.permission.waiting
+            - agent.permission.cleared
+            - agent.position.changed
+            - agent.seat.assigned
+            - agent.subagent.created
+            - agent.subagent.removed
+            - agent.tools.cleared
+            - agent.removed
+            - layout.updated
+        agent_id:
+          type: string
+        payload:
+          type: object
+      required: [type, agent_id, payload]

@@ -139,3 +139,27 @@ AGENT_DASHBOARD_SOURCE=live npm run dev
 ### 검증
 - `agent-dashboard`에서 `npm run typecheck` 통과.
 - `npm run build` 성공. ESLint 의존성 경고(`ESLint must be installed ...`)는 무해.
+
+---
+
+## 2026-02-25 (대시보드 운영 정리)
+
+### 저장소 운영 방향 고정
+- `agent-dashboard`를 메인 제품으로 고정.
+- `src/`, `webview-ui`는 참조 전용으로 유지(신규 아키텍처 기준점에서 제외).
+
+### 실행 동선 단순화
+- 루트 `package.json`에 대시보드 전용 스크립트 추가:
+  - `dashboard:dev`
+  - `dashboard:build`
+  - `dashboard:start`
+  - `dashboard:typecheck`
+
+### 문서 정리
+- 루트 `README.md`에 dashboard-first 모드 명시 + 빠른 실행 가이드 추가.
+- `AGENTS.md`에 참조 전용/대시보드 우선 정책 반영.
+- `agent-dashboard/README.md`에 루트 실행 방법 및 Docker 실행 방법 추가.
+
+### 배포 준비
+- `agent-dashboard/Dockerfile` 추가.
+- `agent-dashboard/.dockerignore` 추가.

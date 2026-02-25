@@ -4,11 +4,12 @@
   "title": "Agent Event Envelope",
   "type": "object",
   "additionalProperties": false,
-  "required": ["seq", "ts", "run_id", "type", "agent_id", "payload"],
+  "required": ["seq", "ts", "run_id", "source", "type", "agent_id", "payload"],
   "properties": {
     "seq": { "type": "integer", "minimum": 1 },
     "ts": { "type": "string", "format": "date-time" },
     "run_id": { "type": "string", "minLength": 1 },
+    "source": { "type": "string", "enum": ["mock", "claude", "generic"] },
     "type": {
       "type": "string",
       "enum": [

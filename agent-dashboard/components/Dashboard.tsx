@@ -47,7 +47,7 @@ function eventLogLine(event: AgentEvent): string | null {
 }
 
 export default function Dashboard({ initialSnapshot, events, dataSource }: Props) {
-  const isLive = dataSource === "live";
+  const isLive = dataSource === "claude" || dataSource === "generic";
   const [cursor, setCursor] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [liveSnapshot, setLiveSnapshot] = useState<StateSnapshot>(initialSnapshot);
@@ -130,8 +130,8 @@ export default function Dashboard({ initialSnapshot, events, dataSource }: Props
 
     const syncBootstrap = async () => {
       const [snapshotRes, eventsRes] = await Promise.all([
-        fetch("/api/v1/state", { cache: "no-store" }),
-        fetch("/api/v1/events", { cache: "no-store" }),
+        fetch(`/api/v1/state?source=${dataSource}`, { cache: "no-store" }),
+        fetch(`/api/v1/events?source=${dataSource}`, { cache: "no-store" }),
       ]);
       if (!snapshotRes.ok || !eventsRes.ok || cancelled) return;
       const [nextSnapshot, nextEvents] = await Promise.all([
@@ -146,7 +146,7 @@ export default function Dashboard({ initialSnapshot, events, dataSource }: Props
 
     void syncBootstrap();
 
-    const source = new EventSource(`/api/v1/stream?after_seq=${lastSeqRef.current}`);
+    const source = new EventSource(`/api/v1/stream?source=${dataSource}&after_seq=${lastSeqRef.current}`);
     source.addEventListener("message", (rawEvent) => {
       try {
         const event = JSON.parse(rawEvent.data) as AgentEvent;
@@ -165,7 +165,7 @@ export default function Dashboard({ initialSnapshot, events, dataSource }: Props
       cancelled = true;
       source.close();
     };
-  }, [isLive, initialSnapshot, events]);
+  }, [isLive, initialSnapshot, events, dataSource]);
 
   useEffect(() => {
     if (!isLive || !isSimulating) return;
@@ -227,7 +227,7 @@ export default function Dashboard({ initialSnapshot, events, dataSource }: Props
     <main className="page">
       <header className="header">
         <div>
-          <h1>{isLive ? "Agent Dashboard (Live)" : "Agent Dashboard (Mock)"}</h1>
+          <h1>{isLive ? `Agent Dashboard (${dataSource})` : "Agent Dashboard (mock)"}</h1>
           <p>run_id: {state.run_id}</p>
         </div>
         <div className="controls">

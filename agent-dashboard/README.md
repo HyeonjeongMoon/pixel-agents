@@ -1,7 +1,7 @@
 # Agent Dashboard (Next.js)
 
 독립 웹뷰/대시보드 아키텍처를 검증하기 위한 샘플 앱입니다.  
-`mock` 모드와 Claude Code JSONL을 읽는 `live` 모드를 모두 지원합니다.
+`mock`, `claude`, `generic` 소스를 지원합니다.
 
 ## 포함 항목
 
@@ -25,6 +25,19 @@ npm run dev
 ```
 
 브라우저에서 `http://localhost:3000` 접속.
+
+기본 소스 선택:
+
+```bash
+AGENT_SOURCE_MODE=claude npm run dev
+```
+
+루트에서 실행:
+
+```bash
+cd ..
+npm run dashboard:dev
+```
 
 ## Live 모드 실행
 
@@ -50,16 +63,49 @@ PIXEL_WORKSPACE_ROOT=/Users/mhj/enkinokorea/2026/pixel-agents AGENT_DASHBOARD_SO
 
 ## API 엔드포인트
 
-- `GET /api/v1/state`
-- `GET /api/v1/layout`
-- `GET /api/v1/events?after_seq=3`
-- `GET /api/v1/stream` (SSE; live 모드에서는 실시간 로그 이벤트)
+- `GET /api/v1/state?source=mock|claude|generic`
+- `GET /api/v1/layout?source=mock|claude|generic`
+- `GET /api/v1/events?source=mock|claude|generic&after_seq=3`
+- `GET /api/v1/stream?source=mock|claude|generic&after_seq=3`
+- `POST /api/v1/ingest` (generic 이벤트 주입)
 
 ## 동작 방식
 
 1. 초기 스냅샷을 로드
 2. 이벤트 배열을 순차 적용(`lib/reducer.ts`)
 3. mock: Step/Play All/Reset 재생, live: SSE 실시간 반영
+
+## Generic Ingest 예시
+
+```bash
+curl -X POST http://localhost:3000/api/v1/ingest \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type":"agent.created",
+    "agent_id":"g-agent-1",
+    "payload":{"name":"Generic Agent","col":10,"row":12}
+  }'
+```
+
+## Docker 실행
+
+이미지 빌드:
+
+```bash
+cd agent-dashboard
+docker build -t pixel-agents-dashboard .
+```
+
+컨테이너 실행:
+
+```bash
+docker run --rm -p 3000:3000 \
+  -e AGENT_SOURCE_MODE=claude \
+  -e CLAUDE_PROJECT_DIR=/root/.claude/projects/-Users-mhj-enkinokorea-2026-pixel-agents \
+  pixel-agents-dashboard
+```
+
+호스트 Claude 로그를 컨테이너에 마운트하려면 `-v <host_claude_projects>:/root/.claude/projects:ro`를 추가하세요.
 
 ## 데모 포인트
 

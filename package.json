@@ -49,6 +49,10 @@
     }
   },
   "scripts": {
+    "dashboard:dev": "npm --prefix agent-dashboard run dev",
+    "dashboard:build": "npm --prefix agent-dashboard run build",
+    "dashboard:start": "npm --prefix agent-dashboard run start",
+    "dashboard:typecheck": "npm --prefix agent-dashboard run typecheck",
     "vscode:prepublish": "npm run package",
     "build:webview": "cd webview-ui && npm run build",
     "compile": "npm run check-types && npm run lint && node esbuild.js && npm run build:webview",

@@ -6,6 +6,30 @@ Each Claude Code terminal you open spawns a character that walks around, sits at
 
 This is the source code for the free [Pixel Agents extension for VS Code](https://marketplace.visualstudio.com/items?itemName=pablodelucca.pixel-agents) — you can install it directly from the marketplace with the full furniture catalog included.
 
+## Repository Mode (Current)
+
+This repository is currently operated in **dashboard-first mode**:
+
+- Primary product/runtime: `agent-dashboard/`
+- VS Code extension code (`src/`, `webview-ui/`) is kept as **reference-only** unless explicitly requested
+- Default package manager: `npm`
+
+### Dashboard Quick Start
+
+```bash
+cd agent-dashboard
+npm install
+AGENT_SOURCE_MODE=claude npm run dev
+```
+
+Open `http://localhost:3000?source=claude` (or `source=generic`, `source=mock`).
+
+You can also run from repo root:
+
+```bash
+npm run dashboard:dev
+```
+
 
 ![Pixel Agents screenshot](webview-ui/public/Screenshot.jpg)
 

@@ -1,20 +1,20 @@
 import { NextRequest } from "next/server";
-import { getDataSource, loadAgentEvents } from "@/lib/dataSource";
-import { getLiveBridge } from "@/lib/liveBridge";
+import { loadAgentEvents, resolveDataSource, subscribeToEvents } from "@/lib/dataSource";
+import type { DashboardDataSource } from "@/lib/dataSource";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  const source = getDataSource();
-  if (source === "live") {
-    return streamLive(request);
+  const source = resolveDataSource(request.nextUrl.searchParams.get("source"));
+  if (source === "mock") {
+    return streamMock();
   }
-  return streamMock();
+  return streamRealtime(source, request);
 }
 
 function streamMock() {
-  const events = loadAgentEvents(0);
+  const events = loadAgentEvents("mock", 0);
   const encoder = new TextEncoder();
   let index = 0;
   let timer: NodeJS.Timeout | null = null;
@@ -31,8 +31,7 @@ function streamMock() {
           return;
         }
 
-        const payload = JSON.stringify(events[index]);
-        controller.enqueue(encoder.encode(`event: message\ndata: ${payload}\n\n`));
+        controller.enqueue(encoder.encode(`event: message\ndata: ${JSON.stringify(events[index])}\n\n`));
         index += 1;
       }, 1200);
     },
@@ -50,9 +49,8 @@ function streamMock() {
   });
 }
 
-function streamLive(request: NextRequest) {
+function streamRealtime(source: DashboardDataSource, request: NextRequest) {
   const encoder = new TextEncoder();
-  const bridge = getLiveBridge();
   const rawAfterSeq = Number(request.nextUrl.searchParams.get("after_seq") ?? "0");
   const afterSeq = Number.isFinite(rawAfterSeq) && rawAfterSeq > 0 ? rawAfterSeq : 0;
   let unsubscribe: (() => void) | null = null;
@@ -62,12 +60,12 @@ function streamLive(request: NextRequest) {
     start(controller) {
       controller.enqueue(encoder.encode(": stream-start\n\n"));
 
-      const backlog = bridge.listEvents(afterSeq);
+      const backlog = loadAgentEvents(source, afterSeq);
       for (const event of backlog) {
         controller.enqueue(encoder.encode(`event: message\ndata: ${JSON.stringify(event)}\n\n`));
       }
 
-      unsubscribe = bridge.subscribe((event) => {
+      unsubscribe = subscribeToEvents(source, (event) => {
         controller.enqueue(encoder.encode(`event: message\ndata: ${JSON.stringify(event)}\n\n`));
       });
 

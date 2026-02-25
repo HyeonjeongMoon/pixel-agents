@@ -541,6 +541,7 @@ class LiveAgentBridge {
       seq: ++this.seq,
       ts: new Date().toISOString(),
       run_id: "live-run",
+      source: "claude",
       type,
       agent_id: agentId,
       payload,

@@ -1,6 +1,8 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
+- Product focus: `agent-dashboard/` is the primary runtime product.
+- Reference-only scope: `src/` and `webview-ui/` (VS Code extension code) are kept for reference and should not drive new feature architecture unless explicitly requested.
 - `src/`: VS Code extension backend (agent tracking, file watching, panel provider, transcript parsing).
 - `webview-ui/src/`: React + TypeScript frontend rendered inside the VS Code webview (office engine, editor tools, UI components).
 - `scripts/`: asset import/export and helper tooling for tilesets and metadata workflows.
@@ -10,6 +12,11 @@
 ## Build, Test, and Development Commands
 - Package manager policy: use `npm` as the default package manager in this repository.
 - Do not switch lockfile/workflow to `pnpm` unless explicitly requested.
+- Dashboard-first commands (preferred):
+- `npm run dashboard:dev`: run `agent-dashboard` locally.
+- `npm run dashboard:build`: build `agent-dashboard`.
+- `npm run dashboard:start`: start built `agent-dashboard`.
+- `npm run dashboard:typecheck`: type-check `agent-dashboard`.
 - `npm run build`: full verification + production build (type-check, lint, extension bundle, webview build).
 - `npm run watch`: extension-side live workflow (`esbuild --watch` + `tsc --watch`).
 - `npm run build:webview`: rebuild only the React/Vite webview.
