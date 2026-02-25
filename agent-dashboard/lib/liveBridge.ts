@@ -153,6 +153,48 @@ class LiveAgentBridge {
     return () => this.listeners.delete(listener);
   }
 
+  /** Delete all JSONL files in the project dir and reset in-memory state. */
+  clearLogs(): number {
+    // Stop watching all files first
+    for (const state of this.fileStates.values()) {
+      state.watcher?.close();
+    }
+
+    // Delete JSONL files from disk
+    let deleted = 0;
+    if (fs.existsSync(this.claudeProjectDir)) {
+      try {
+        const files = fs
+          .readdirSync(this.claudeProjectDir)
+          .filter((name) => name.endsWith(".jsonl"))
+          .map((name) => path.join(this.claudeProjectDir, name));
+        for (const file of files) {
+          try { fs.unlinkSync(file); deleted++; } catch { /* skip locked */ }
+        }
+      } catch { /* dir unreadable */ }
+    }
+
+    // Reset all in-memory state
+    this.fileStates.clear();
+    this.sessionToAgentId.clear();
+    this.activeTools.clear();
+    this.taskMetaByToolId.clear();
+    this.subAgentByParentToolId.clear();
+    this.agentDeskById.clear();
+    this.events = [];
+    this.seq = 0;
+    this.agentCounter = 0;
+    this.deskCursor = 0;
+    this.state = {
+      ...this.baseSnapshot,
+      run_id: "live-run",
+      snapshot_ts: new Date().toISOString(),
+      agents: [],
+    };
+
+    return deleted;
+  }
+
   private buildSeatPool(snapshot: StateSnapshot): Position[] {
     const chairs = (snapshot.layout.furniture ?? [])
       .filter((item) => item.type === "chair")

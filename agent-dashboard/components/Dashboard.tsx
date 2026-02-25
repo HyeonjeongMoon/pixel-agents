@@ -212,6 +212,16 @@ export default function Dashboard({ initialSnapshot, events, dataSource }: Props
     setIsSimulating(false);
     setSimulationCursor(0);
   };
+  const clearAllLogs = async () => {
+    if (!confirm("모든 로그 기록을 삭제하시겠습니까?\n현재 실행 중인 Claude Code 세션에는 영향을 주지 않습니다.")) return;
+    const res = await fetch("/api/v1/logs", { method: "DELETE" });
+    if (!res.ok) return;
+    setLiveEvents([]);
+    setLiveSnapshot((prev) => ({ ...prev, agents: [] }));
+    setIsSimulating(false);
+    setSimulationCursor(0);
+    lastSeqRef.current = 0;
+  };
 
   return (
     <main className="page">
@@ -228,6 +238,12 @@ export default function Dashboard({ initialSnapshot, events, dataSource }: Props
               </button>
               <button onClick={stopSimulation} disabled={!isSimulating}>
                 Stop Sim
+              </button>
+              <button
+                onClick={() => { void clearAllLogs(); }}
+                style={{ background: "var(--color-danger, #c0392b)", color: "#fff", marginLeft: 8 }}
+              >
+                로그 전체 삭제
               </button>
             </>
           ) : (
