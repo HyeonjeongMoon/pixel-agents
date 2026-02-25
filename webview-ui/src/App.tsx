@@ -133,7 +133,6 @@ function App() {
 
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const [editorTickForKeyboard, setEditorTickForKeyboard] = useState(0)
   useEditorKeyboard(
     editor.isEditMode,
     editorState,
@@ -142,7 +141,7 @@ function App() {
     editor.handleToggleState,
     editor.handleUndo,
     editor.handleRedo,
-    useCallback(() => setEditorTickForKeyboard((n) => n + 1), []),
+    editor.handleEditorSelectionChange,
     editor.handleToggleEditMode,
   )
 
@@ -159,9 +158,6 @@ function App() {
   }, [])
 
   const officeState = getOfficeState()
-
-  // Force dependency on editorTickForKeyboard to propagate keyboard-triggered re-renders
-  void editorTickForKeyboard
 
   // Show "Press R to rotate" hint when a rotatable item is selected or being placed
   const showRotateHint = editor.isEditMode && (() => {
