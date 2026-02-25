@@ -169,7 +169,7 @@ export function ToolOverlay({
               )}
               <span
                 style={{
-                  fontSize: isSub ? '20px' : '22px',
+                  fontSize: isSub ? '24px' : '28px',
                   fontStyle: isSub ? 'italic' : undefined,
                   color: 'var(--vscode-foreground)',
                   overflow: 'hidden',
@@ -191,7 +191,7 @@ export function ToolOverlay({
                     color: 'var(--pixel-close-text)',
                     cursor: 'pointer',
                     padding: '0 2px',
-                    fontSize: '26px',
+                    fontSize: '30px',
                     lineHeight: 1,
                     marginLeft: 2,
                     flexShrink: 0,

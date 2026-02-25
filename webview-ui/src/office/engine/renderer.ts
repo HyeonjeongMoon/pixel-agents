@@ -23,6 +23,7 @@ import {
   BUBBLE_FADE_DURATION_SEC,
   BUBBLE_SITTING_OFFSET_PX,
   BUBBLE_VERTICAL_OFFSET_PX,
+  BUBBLE_ZOOM_BOOST,
   FALLBACK_FLOOR_COLOR,
   SEAT_OWN_COLOR,
   SEAT_AVAILABLE_COLOR,
@@ -467,7 +468,8 @@ export function renderBubbles(
       alpha = ch.bubbleTimer / BUBBLE_FADE_DURATION_SEC
     }
 
-    const cached = getCachedSprite(sprite, zoom)
+    const bubbleZoom = zoom + BUBBLE_ZOOM_BOOST
+    const cached = getCachedSprite(sprite, bubbleZoom)
     // Position: centered above the character's head
     // Character is anchored bottom-center at (ch.x, ch.y), sprite is 16x24
     // Place bubble above head with a small gap; follow sitting offset
