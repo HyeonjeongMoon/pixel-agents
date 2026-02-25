@@ -51,12 +51,17 @@ export function readNewLines(
 	if (!agent) return;
 	try {
 		const stat = fs.statSync(agent.jsonlFile);
-		if (stat.size <= agent.fileOffset) return;
+		// File was truncated or replaced (e.g. /clear creates a new JSONL) — reset offset
+		if (stat.size < agent.fileOffset) { agent.fileOffset = 0; }
+		if (stat.size === agent.fileOffset) return;
 
 		const buf = Buffer.alloc(stat.size - agent.fileOffset);
 		const fd = fs.openSync(agent.jsonlFile, 'r');
-		fs.readSync(fd, buf, 0, buf.length, agent.fileOffset);
-		fs.closeSync(fd);
+		try {
+			fs.readSync(fd, buf, 0, buf.length, agent.fileOffset);
+		} finally {
+			fs.closeSync(fd);
+		}
 		agent.fileOffset = stat.size;
 
 		const text = agent.lineBuffer + buf.toString('utf-8');
